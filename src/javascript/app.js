@@ -278,15 +278,20 @@ Ext.define("CArABU.app.TSApp", {
     _getItemCSVString: function(item, witch) {
         var type = this.getSetting(Constants.SETTING.DEPENDENCY_TYPE);
         
-        var fId = item.get(witch)?item.get(witch).get('FormattedID'):'';
-        var name = item.get(witch)?item.get(witch).get('Name'):'';
-        var details = '';
-        if (type !== Constants.SETTING.STORY) {
-            details = item.get(witch)?item.get(witch).get('Release').Name:''
+        var section =  item.get(witch);
+        if (section) {
+            var fId = section.get('FormattedID');
+            var name = section.get('Name');
+            var details = '';
+            if (type !== Constants.SETTING.STORY) {
+                details = section.get('Release')?section.get('Release').Name:''
+            } else {
+                details = section.get('Iteration')?section.get('Iteration').Name:''
+            }
+            return fId+','+name+','+details;
         } else {
-            details = item.get(witch)?item.get(witch).get('Iteration').Name:''
+            return ',,';
         }
-        return fId+','+name+','+details;
     },
 
     addInlineFilterPanel: function(panel) {

@@ -3,13 +3,13 @@
 <head>
     <title>CATS-Story Dependency Schedule-1.0.7</title>
     <!--  (c) 2017 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Wed May 27 2020 15:31:08 GMT+0100 (British Summer Time) -->
+    <!--  Build Date: Wed May 27 2020 15:53:22 GMT+0100 (British Summer Time) -->
 
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Wed May 27 2020 15:31:08 GMT+0100 (British Summer Time)";
+        var APP_BUILD_DATE = "Wed May 27 2020 15:53:22 GMT+0100 (British Summer Time)";
         var ARTIFACT = "";
         var BUILDER  = "nikantonelli";
-        var CHECKSUM = 27426677383;
+        var CHECKSUM = 27443826937;
     </script>
 
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
@@ -720,15 +720,20 @@ Ext.define("CArABU.app.TSApp", {
     _getItemCSVString: function(item, witch) {
         var type = this.getSetting(Constants.SETTING.DEPENDENCY_TYPE);
         
-        var fId = item.get(witch)?item.get(witch).get('FormattedID'):'';
-        var name = item.get(witch)?item.get(witch).get('Name'):'';
-        var details = '';
-        if (type !== Constants.SETTING.STORY) {
-            details = item.get(witch)?item.get(witch).get('Release').Name:''
+        var section =  item.get(witch);
+        if (section) {
+            var fId = section.get('FormattedID');
+            var name = section.get('Name');
+            var details = '';
+            if (type !== Constants.SETTING.STORY) {
+                details = section.get('Release')?section.get('Release').Name:''
+            } else {
+                details = section.get('Iteration')?section.get('Iteration').Name:''
+            }
+            return fId+','+name+','+details;
         } else {
-            details = item.get(witch)?item.get(witch).get('Iteration').Name:''
+            return ',,';
         }
-        return fId+','+name+','+details;
     },
 
     addInlineFilterPanel: function(panel) {
