@@ -4,7 +4,7 @@
 
 ![screenshot](./screenshot.png "This is an example")
 
-Show stories (or Features) and their dependencies. Color code the dependencies based on their iteration
+Show stories (or Features) and their dependencies. Color code the dependencies based on their
 schedule. The app respects page-level timebox filtering.
 
 The app can also be configured to show  dependencies and colors dependencies based
