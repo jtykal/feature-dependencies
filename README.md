@@ -1,14 +1,14 @@
-# Story Dependency Schedule
+# Story/Feature Dependency Schedule
 
 ## Summary/Description
 
 ![screenshot](./screenshot.png "This is an example")
 
-Show stories and their dependencies. Color code the dependencies based on their iteration
+Show stories (or Features) and their dependencies. Color code the dependencies based on their iteration
 schedule. The app respects page-level timebox filtering.
 
-The app can also be configured to show Feature dependencies and colors dependencies based
-on release start dates. The app will automatically detect the name of the lowest level
+The app can also be configured to show  dependencies and colors dependencies based
+on start dates. The app will automatically detect the name of the lowest level
 portfolio item name ( Feature is the default ), so this will work in environments that have
 customized portfolio item names.
 
