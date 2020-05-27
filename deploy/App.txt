@@ -1,3 +1,445 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CATS-Story Dependency Schedule-1.0.7</title>
+    <!--  (c) 2017 CA Technologies.  All Rights Reserved. -->
+    <!--  Build Date: Wed May 27 2020 15:31:08 GMT+0100 (British Summer Time) -->
+
+    <script type="text/javascript">
+        var APP_BUILD_DATE = "Wed May 27 2020 15:31:08 GMT+0100 (British Summer Time)";
+        var ARTIFACT = "";
+        var BUILDER  = "nikantonelli";
+        var CHECKSUM = 27426677383;
+    </script>
+
+    <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
+    <!-- our highcharts (needed so that we can add patterns)
+    <script type="text/javascript" src="/apps/2.1/lib/analytics/analytics-all.js"></script>
+    -->
+
+
+    <script type="text/javascript">
+        Rally.onReady(function() {
+             
+Ext.define('Renderers', {
+
+    singleton: true,
+
+    alternateRowModifier: function(metaData, record, rowIndex, store, subDataIndex) {
+        // Determine the row color so that row colors alternate anytime the primary
+        // artifact changes.
+        var extraCls = [subDataIndex.toLowerCase()];
+        var rowItemId = record.get(Constants.ID.STORY).id;
+        if (rowIndex == 0) {
+            record.alternateRow = false;
+        }
+        else {
+            var priorRowItem = store.getAt(rowIndex - 1);
+            if (rowItemId != priorRowItem.get(Constants.ID.STORY).id) {
+                record.alternateRow = !priorRowItem.alternateRow;
+                extraCls.push(Constants.CLASS.FIRST_IN_GROUP);
+            }
+            else {
+                record.alternateRow = priorRowItem.alternateRow;
+                if (subDataIndex === Constants.ID.STORY) {
+                    extraCls.push(Constants.CLASS.HIDDEN);
+                }
+            }
+        }
+
+        if (record.alternateRow) {
+            extraCls.push(Constants.CLASS.ALTERNATE_ROW);
+        }
+
+        metaData.tdCls = metaData.tdCls + ' ' + extraCls.join(' ');
+
+    },
+
+    /**
+     * When the Feature has been renamed, the default renderers don't create the linked
+     * ID. Pull the appropriate "feature-level" portfolio item from the records and
+     * use the DetailLink component to generate a link.
+     */
+    featureRenderer: function(metaData, record, rowIndex, store, subDataIndex, columnCfg) {
+        try {
+            var feature = record.get(subDataIndex).get(columnCfg.dataIndex)
+            var result = Rally.nav.DetailLink.getLink({
+                record: feature,
+                text: feature.FormattedID
+            }) + ': ' + feature._refObjectName;
+        }
+        catch (ex) {
+            result = '';
+        }
+        Renderers.alternateRowModifier(metaData, record, rowIndex, store, subDataIndex);
+        return result;
+    }
+});
+
+/**
+ * Allows us to use the default field renderers returned by
+ * Rally.ui.grid.FieldColumnFactory.getColumnConfigFromField() by wrapping
+ * that renderer in a function that knows how to get to the Story, Predecessor
+ * and Successor objects in our custom model.
+ */
+Ext.override(Rally.ui.grid.CellRendererFactory, {
+    createRendererFunction: function(column) {
+        var renderer = this.callParent(arguments);
+        return function(value, metaData, record, rowIndex, colIndex, store, view) {
+            var result;
+            // Now get the sub-data so the default renderer can work
+            var subRecord = record;
+            var subDataIndex = column.__subDataIndex;
+            if (subDataIndex) {
+                subRecord = record.get(subDataIndex);
+            }
+            if (subRecord) {
+                result = renderer(value, metaData, subRecord, rowIndex, colIndex, store, view);
+            }
+            else {
+                result = '';
+            }
+
+            // After the default renderer has run, update the tdCls (it overwrite the tdCls value)
+            Renderers.alternateRowModifier(metaData, record, rowIndex, store, subDataIndex);
+            return result;
+        }
+    }
+});
+
+Ext.define('CA.technicalservices.userutilities.FieldPicker', {
+    alias: 'widget.tsfieldpickerbutton',
+    extend: 'Rally.ui.Button',
+    requires: [
+        'Rally.ui.popover.Popover',
+        'Rally.ui.Button',
+        'Rally.ui.picker.FieldPicker',
+        'Ext.state.Manager'
+    ],
+    toolTipConfig: {
+        html: 'Show Columns',
+        anchor: 'top'
+    },
+    iconCls: 'icon-add-column',
+
+    cls: 'field-picker-btn secondary rly-small',
+
+    alwaysSelectedValues: ['FormattedID', 'Name'], // DragAndDropRank gets added in init if Drag and Drop is enabled for the workspace in the component's context
+
+    fieldBlackList: [],
+
+    fieldPickerConfig: {},
+
+    buttonConfig: {},
+
+    modelNames: ['User'],
+
+    rankingEnabled: false,
+
+    //This does not show the Rank column
+
+    constructor: function(config) {
+        this.config = _.merge({}, this.config || {}, config || {});
+        this.callParent([config]);
+    },
+
+    initComponent: function() {
+
+        if (this.models) {
+            this.on('click', this._createPopover, this);
+            this.callParent(arguments);
+            return;
+        }
+
+        if (this.context && this.modelNames && this.modelNames.length > 0) {
+            Rally.data.ModelFactory.getModels({
+                types: this.modelNames,
+                context: this.context,
+                success: function(models) {
+                    this.models = models;
+                },
+                failure: function(failedParam) {
+                    console.log('failedparam');
+                },
+                scope: this
+            });
+            this.on('click', this._createPopover, this);
+        }
+        else {
+            this.iconCls = 'icon-none';
+            var msg = "Please update the CA.technicalservices.FieldPicker configuration with modelNames and context";
+            this.toolTipConfig = {
+                html: '<div style="color:red;">' + msg + '</div>'
+            };
+            this.on('click', function() { Rally.ui.notify.Notifier.showError({ message: msg }); });
+        }
+        this.callParent(arguments);
+    },
+    getFields: function() {
+        return _.union(this._fields || [], this.alwaysSelectedValues);
+    },
+    _getPickerConfig: function() {
+        var pickerConfig;
+        pickerConfig = _.extend({
+            value: this._fields,
+            fieldBlackList: this.fieldBlackList,
+            alwaysSelectedValues: this.alwaysSelectedValues,
+            context: this.context
+        }, this.fieldPickerConfig);
+
+        return pickerConfig;
+    },
+
+    _createPopover: function(btn) {
+        var popoverTarget = btn.getEl();
+
+        this.popover = Ext.create('Rally.ui.popover.Popover', {
+            target: popoverTarget,
+            placement: ['bottom', 'left', 'top', 'right'],
+            cls: 'field-picker-popover',
+            toFront: Ext.emptyFn,
+            buttonAlign: 'center',
+            title: this.getTitle(),
+            listeners: {
+                destroy: function() {
+                    this.popover = null;
+                },
+                scope: this
+            },
+            buttons: [{
+                    xtype: "rallybutton",
+                    text: 'Apply',
+                    cls: 'field-picker-apply-btn primary rly-small',
+                    listeners: {
+                        click: function() {
+                            this._onApply(this.popover);
+                        },
+                        scope: this
+                    }
+                },
+                {
+                    xtype: "rallybutton",
+                    text: 'Cancel',
+                    cls: 'field-picker-cancel-btn secondary dark rly-small',
+                    listeners: {
+                        click: function() {
+                            this.popover.close();
+                        },
+                        scope: this
+                    }
+                }
+            ],
+            items: [
+                _.extend({
+                    xtype: 'rallyfieldpicker',
+                    cls: 'field-picker',
+                    itemId: 'fieldpicker',
+                    modelTypes: this._getModelTypes(),
+                    alwaysExpanded: true,
+                    width: 200,
+                    emptyText: 'Search',
+                    selectedTextLabel: 'Selected',
+                    availableTextLabel: 'Available',
+                    listeners: {
+                        specialkey: function(field, e) {
+                            if (e.getKey() === e.ESC) {
+                                this.popover.close();
+                            }
+                        },
+                        scope: this
+                    }
+                }, this._getPickerConfig())
+            ]
+        });
+    },
+
+    _getModelTypes: function() {
+        return _.pluck(this._getModels(), 'typePath');
+    },
+
+    _getModels: function() {
+        return _.reduce(this.models, function(accum, model) {
+            if (model.typePath === 'artifact') {
+                accum = accum.concat(model.getArtifactComponentModels());
+            }
+            else {
+                accum.push(model);
+            }
+            return accum;
+        }, []);
+    },
+
+    getTitle: function() {
+        return 'Show Columns';
+    },
+
+    /**
+     * Update the fields displayed. In grid mode this will be the columns displayed. In board mode it will be
+     * the fields on the cards
+     *
+     * @param {String[]|Object[]} fields A list of field names to display
+     * @param {Boolean} true to suspend store load if it will be triggered elsewhere
+     */
+    updateFields: function(fields, suspendLoad) {
+        this._fields = fields;
+        if (this.popover && this.popover.down('rallyfieldpicker')) {
+            this.popover.down('rallyfieldpicker').setValue(fields.join(','));
+        }
+        this.saveState();
+    },
+    getState: function() {
+        return {
+            fields: this._fields
+        };
+    },
+    applyState: function(state) {
+        if (state) {
+            this._fields = state.fields;
+        }
+    },
+    _onApply: function(popover) {
+        var fieldPicker = popover.down('rallyfieldpicker'),
+            fields = _.map(fieldPicker.getValue(), function(field) {
+                return field.get('name');
+            });
+
+        this.updateFields(fields);
+        popover.close();
+
+        this.fireEvent('fieldsupdated', fields);
+    }
+});
+
+/* global Ext */
+Ext.define('Constants', function(Constants) {
+    return {
+        statics: {
+            DEFAULT_COLUMNS: ['FormattedID', 'Name', 'Project'],
+            ARTIFACT_FETCH_FIELDS: ['Predecessors', 'Successors', 'Release', 'ReleaseStartDate', 'Iteration', 'StartDate', 'Name'],
+            CLASS: {
+                OK: 'ok',
+                WARNING: 'warning',
+                ERROR: 'error',
+                UNKNOWN: 'unknown',
+                ALTERNATE_ROW: 'alternate-row',
+                HIDDEN: 'hidden',
+                FIRST_IN_GROUP: 'first-in-group'
+            },
+            ID: {
+                STORY: 'STORY',
+                PREDECESSOR: 'PREDECESSOR',
+                SUCCESSOR: 'SUCCESSOR'
+            },
+            LABEL: {
+                UNSCHEDULED: 'Unscheduled',
+                DEPENDENCY_TYPE: 'Dependency Type',
+                SHOW_ALL: 'Include items with no dependencies',
+                STORY: 'Story',
+                PREDECESSOR: 'Predecessor(s)',
+                SUCCESSOR: 'Successor(s)'
+            },
+            SETTING: {
+                DEPENDENCY_TYPE: 'DEPENDENCY_TYPE',
+                STORY: 'STORY'
+            }
+        }
+    }
+});
+
+/* global Ext _ Rally Constants */
+Ext.define('MetricsManager', function(MetricsManager) {
+    return {
+        statics: {
+            createDependencyStore: createDependencyStore
+        }
+    }
+
+    function createDependencyStore(records) {
+        return _loadDependencies(records)
+            .then({
+                success: function(results) {
+                    // Results is an array of all of the 
+                    var store = Ext.create('Rally.data.custom.Store', {
+                        data: results
+                    });
+                    return store;
+                }
+            });
+    }
+
+    /**
+     * Returns a promise that resolves to an array of stories that are the
+     * dependencies of the given stories. Each primary story has
+     * has a __Predecessors and __Successors array set, and each dependency
+     * has a __PrimaryStory reference set.
+     */
+    function _loadDependencies(records) {
+        if (!records || records.length == 0) {
+            return Deft.promise.Promise.when([]);
+        }
+
+        var dependentPromises = [];
+        _.forEach(records, function(record) {
+            var predecessorsRef = record.get('Predecessors');
+            var successorsRef = record.get('Successors');
+            var predecessors = [];
+            if (predecessorsRef.Count > 0) {
+                predecessors = record
+                    .getCollection('Predecessors', {
+                        limit: Infinity,
+                        fetch: Rally.getApp().artifactFetchFields
+                    })
+                    .load();
+            }
+            var successors = [];
+            if (successorsRef.Count > 0) {
+                successors = record
+                    .getCollection('Successors', {
+                        limit: Infinity,
+                        fetch: Rally.getApp().artifactFetchFields
+                    })
+                    .load()
+            }
+
+            // only include stories with no dependencies in the results if user
+            // requests them
+            if (Rally.getApp().showItemsWithoutDependencies || predecessorsRef.Count > 0 || successorsRef.Count > 0) {
+                var result = Deft.promise.Promise.all([predecessors, successors])
+                    .then({
+                        scope: this,
+                        success: function(results) {
+                            var rows = _.zip([record], results[0], results[1]);
+                            return _.map(rows, function(row) {
+                                var result = {};
+                                result[Constants.ID.STORY] = record;
+                                result[Constants.ID.PREDECESSOR] = row[1];
+                                result[Constants.ID.SUCCESSOR] = row[2];
+                                return result;
+                            });
+                        }
+                    });
+                dependentPromises.push(result);
+            }
+
+        });
+
+        // TODO (tj) sorting by primary story?
+        if (dependentPromises.length == 0) {
+            // If no stories found, make sure we still return a promise. .all below doesn't :(
+            result = Deft.promise.Promise.when([]);
+        }
+        else {
+            result = Deft.promise.Promise.all(dependentPromises).then({
+                success: function(results) {
+                    var data = _.flatten(results);
+                    return data;
+                }
+            });
+        }
+        return result;
+    }
+});
+
 /* global Ext MetricsManager Constants Rally _ */
 Ext.define("CArABU.app.TSApp", {
     extend: 'Rally.app.App',
@@ -595,3 +1037,83 @@ Ext.define("CArABU.app.TSApp", {
         }];
     }
 });
+
+
+               Rally.launchApp('CArABU.app.TSApp', {
+                   name: 'Story Dependency Schedule'
+               });
+        });
+    </script>
+
+    <style type="text/css">
+
+.app {}
+
+/* fix for grid hscroll when rows are tall and push hscroll off bottom of screen. Force it on */
+
+.x-grid-body.x-panel-body {
+    overflow-y: auto;
+}
+
+/* pills for status indicators */
+
+.status-color {
+    padding: 0 5px 0 5px;
+    border-radius: 50px;
+}
+
+/* use the same colors as Agile Central for Late, At-Risk and Not Started */
+
+.error {
+    background-color: #F66349;
+}
+
+.warning {
+    background-color: #FAD200;
+}
+
+.unknown {
+    background-color: #E0E0E0;
+}
+
+/* visually divide rows into groups */
+
+.group-separator {
+    border-left: solid 2px rgb(213, 213, 213);
+    border-right: solid 2px rgb(213, 213, 213);
+}
+
+/* highlight the group headers */
+
+.x-group-header>.x-column-header-inner {
+    background-color: rgb(213, 213, 213);
+}
+
+.alternate-row {
+    background-color: rgb(244, 244, 244) !important;
+}
+
+.first-in-group {
+    border-top: 1px solid rgb(186, 185, 186);
+    /*border-bottom: 1px solid rgb(186, 185, 186);*/
+}
+
+.predecessor {
+    border-top: 1px solid rgb(186, 185, 186);
+    /*border-bottom: 1px solid rgb(186, 185, 186);*/
+}
+
+.successor {
+    border-top: 1px solid rgb(186, 185, 186);
+    /*border-bottom: 1px solid rgb(186, 185, 186);*/
+}
+
+.hidden {
+    visibility: hidden;
+}
+
+    </style>
+
+</head>
+<body></body>
+</html>
