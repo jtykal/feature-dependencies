@@ -259,40 +259,109 @@ Ext.define("CArABU.app.TSApp", {
     },
 
     _exportStore: function(store) {
-//        var textOut = 'ID,Name,Details\n';
-        var textOut = 'ID,Name,Details,Predecessor ID,Predecessor Name,Details,Successor ID,Successor Name,Details\n';
+        var textOut = '';
+        _.each(this.getFieldNames(), function(field) {
+            textOut += field+',';
+        })
+        _.each(this.getFieldNames(), function(field) {
+            textOut += 'Predecessor '+field+',';
+        })
+        _.each(this.getFieldNames(), function(field) {
+            textOut += 'Successor '+field+',';
+        });
+        textOut = textOut.slice(0,-1)+'\n';
 
         var me = this;
+        debugger;
         _.each(store.getData().items, function(item) {
             textOut += me._getItemCSVString(item, 'STORY');
-            textOut +=',';
             textOut += me._getItemCSVString(item, 'PREDECESSOR');
-            textOut +=',';
             textOut += me._getItemCSVString(item, 'SUCCESSOR');
-            textOut +='\n';
+            textOut = textOut.slice(0,-1)+'\n';
         });
 
         return textOut;
     },
 
     _getItemCSVString: function(item, witch) {
-        var type = this.getSetting(Constants.SETTING.DEPENDENCY_TYPE);
-        
+        var me = this;
+        var retStr = '';
+
         var section =  item.get(witch);
-        if (section) {
-            var fId = section.get('FormattedID');
-            var name = section.get('Name');
-            var details = '';
-            if (type !== Constants.SETTING.STORY) {
-                details = section.get('Release')?section.get('Release').Name:''
-            } else {
-                details = section.get('Iteration')?section.get('Iteration').Name:''
+        _.each(this.getFieldNames(), function(field) {
+            if (section) {
+                var fieldData = section.get(field);
+                var details = me._getFieldTextAndEscape(fieldData);
+                retStr += details;
             }
-            return fId+','+name+','+details;
-        } else {
-            return ',,';
-        }
+            retStr += ',';
+        });
+        return retStr;
     },
+
+    _escapeForCSV: function(string) {
+        string = "" + string;
+        if (string.match(/,/)) {
+            if (!string.match(/"/)) {
+                string = '"' + string + '"';
+            } else {
+                string = string.replace(/,/g, ''); // comma's and quotes-- sorry, just lose the commas
+            }
+        }
+        return string;
+    },
+
+    _getFieldText: function(fieldData) {
+        var text;
+        if (fieldData === null || fieldData === undefined) {
+            text = '';
+
+        // we capture object types here
+        } else if (fieldData._refObjectName && !fieldData.getMonth) {
+            text = fieldData._refObjectName;
+
+        // Date types here
+        } else if (fieldData instanceof Date) {
+            text = Ext.Date.format(fieldData, this.dateFormat);
+
+        //The dependencies field is a synthetic one. We identity it by the field contents
+        } else if (fieldData.Count !== undefined) {
+            text = fieldData.Count.toString();
+        }
+        /*else if (!fieldData.match) { // not a string or object we recognize...bank it out
+            text = '';
+        } */ else {
+            var delimiter = ",",
+            rowDelimiter = "\r\n",
+            re = new RegExp(delimiter + '|\"|\r|\n','g'),
+            reHTML = new RegExp('<\/?[^>]+>', 'g'),
+            reNbsp = new RegExp('&nbsp;','ig');
+
+            text = fieldData;
+            if (reHTML.test(text)){
+                text = fieldData.replace('<br>',rowDelimiter);
+                text = Ext.util.Format.htmlDecode(text);
+                text = Ext.util.Format.stripTags(text);
+            }
+            if (reNbsp.test(text)){
+                text = text.replace(reNbsp,' ');
+            }
+
+            if (re.test(text)){ //enclose in double quotes if we have the delimiters
+                text = text.replace(/\"/g,'\"\"');
+                text = Ext.String.format("\"{0}\"",text);
+            }
+        }
+
+        return text;
+    },
+
+    _getFieldTextAndEscape: function(fieldData) {
+        var string  = this._getFieldText(fieldData);
+
+        return this._escapeForCSV(string);
+    },
+
 
     addInlineFilterPanel: function(panel) {
         this.down('#filtersArea').add(panel);
