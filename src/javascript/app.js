@@ -661,7 +661,7 @@ Ext.define("CArABU.app.TSApp", {
             } else if (successor.get('PlannedEndDate') < primaryStory.get('PlannedEndDate')){
                 colorClass = Constants.CLASS.ERROR;
             }
-            result = this.colorsRenderer(Ext.Date.format(predecessor.get('PlannedStartDate'), Constants.SETTING.DATEFORMAT), colorClass);
+            result = this.colorsRenderer(Ext.Date.format(successor.get('PlannedStartDate'), Constants.SETTING.DATEFORMAT), colorClass);
         }
 
         return result;
@@ -677,7 +677,7 @@ Ext.define("CArABU.app.TSApp", {
             if (successor.get('PlannedEndDate') < primaryStory.get('PlannedEndDate')){
                 colorClass = Constants.CLASS.ERROR;
             }
-            result = this.colorsRenderer(Ext.Date.format(predecessor.get('PlannedStartDate'), Constants.SETTING.DATEFORMAT), colorClass);
+            result = this.colorsRenderer(Ext.Date.format(successor.get('PlannedEndDate'), Constants.SETTING.DATEFORMAT), colorClass);
         }
 
         return result;
