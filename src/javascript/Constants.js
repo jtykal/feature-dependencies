@@ -3,7 +3,7 @@ Ext.define('Constants', function(Constants) {
     return {
         statics: {
             DEFAULT_COLUMNS: ['FormattedID', 'Name', 'Project'],
-            ARTIFACT_FETCH_FIELDS: ['Predecessors', 'Successors', 'Release', 'ReleaseStartDate', 'Iteration', 'StartDate', 'Name'],
+            ARTIFACT_FETCH_FIELDS: ['Predecessors', 'Successors', 'Release', 'ReleaseStartDate', 'Iteration', 'StartDate', 'Name', 'PlannedStartDate', 'PlannedEndDate', 'PercentDoneByStoryPlanEstimate'],
             CLASS: {
                 OK: 'ok',
                 WARNING: 'warning',
@@ -28,7 +28,8 @@ Ext.define('Constants', function(Constants) {
             },
             SETTING: {
                 DEPENDENCY_TYPE: 'DEPENDENCY_TYPE',
-                STORY: 'STORY'
+                STORY: 'STORY',
+                DATEFORMAT : 'Y-m-d',
             }
         }
     }

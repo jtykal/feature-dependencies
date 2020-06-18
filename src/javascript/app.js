@@ -120,7 +120,8 @@ Ext.define("CArABU.app.TSApp", {
 
         var filters = [];
 
-        if (this.getSetting('DEPENDENCY_TYPE').indexOf('portfolioitem/') < 0){
+        if ((this.getSetting('DEPENDENCY_TYPE').indexOf('portfolioitem/') < 0) ||   //Not portfolio types
+                    (this.piStore.data.items[0].get('TypePath').toLowerCase() === this.getSetting('DEPENDENCY_TYPE'))){ // but add first level portfolio type
             var timeboxScope = this.getContext().getTimeboxScope();
             if (timeboxScope) {
                 filters.push(timeboxScope.getQueryFilter());
@@ -158,8 +159,6 @@ Ext.define("CArABU.app.TSApp", {
         var controlsArea = this.down('#controlsArea');
 
         // Add column picker first so we know what fields to fetch during artifact load
-
-        debugger;
 
         var alwaysSelectedColumns = ['FormattedID', 'Name'];
         if (this.showPortfolioDependencies()) {
@@ -335,7 +334,7 @@ Ext.define("CArABU.app.TSApp", {
 
         // Date types here
         } else if (fieldData instanceof Date) {
-            text = Ext.Date.format(fieldData, this.dateFormat);
+            text = Ext.Date.format(fieldData, Constants.SETTING.DATEFORMAT);
 
         //The dependencies field is a synthetic one. We identity it by the field contents
         } else if (fieldData.Count !== undefined) {
@@ -461,6 +460,8 @@ Ext.define("CArABU.app.TSApp", {
             var column;
             var columnCfg = this.getColumnConfigFromModel(selectedFieldName);
             switch (columnCfg.dataIndex) {
+
+                //TODO: feature or higher?
                 case this.getChosenPortfolioItemTypeName():
                     column = {
                         xtype: 'gridcolumn',
@@ -490,6 +491,66 @@ Ext.define("CArABU.app.TSApp", {
                                         break;
                                     default:
                                         result = this.primaryIterationRenderer(record, columnCfg.dataIndex);
+                                        break;
+                                }
+                            }
+                            catch (ex) {
+                                result = '';
+                            }
+                            // Determine the row color so that row colors alternate anytime the primary
+                            // artifact changes.
+                            Renderers.alternateRowModifier(metaData, record, rowIndex, store, subDataIndex);
+                            return result;
+                        }
+                    }
+                    break;
+                case 'PlannedStartDate':
+                    column = {
+                        xtype: 'gridcolumn',
+                        text: columnCfg.text,
+                        scope: this,
+                        renderer: function(value, metaData, record, rowIndex, colIndex, store, view) {
+                            var result;
+                            try {
+                                switch (subDataIndex) {
+                                    case Constants.ID.PREDECESSOR:
+                                        result = this.predecessorStartRenderer(record, columnCfg.dataIndex);
+                                        break;
+                                    case Constants.ID.SUCCESSOR:
+                                        result = this.successorStartRenderer(record, columnCfg.dataIndex);
+                                        break;
+                                    default:
+                                        result = this.primaryHealthRenderer(record, columnCfg.dataIndex);
+                                        break;
+                                }
+                            }
+                            catch (ex) {
+                                result = '';
+                            }
+                            // Determine the row color so that row colors alternate anytime the primary
+                            // artifact changes.
+                            Renderers.alternateRowModifier(metaData, record, rowIndex, store, subDataIndex);
+                            return result;
+                        }
+                    }
+                    break;
+                case 'PlannedEndDate':
+                    column = {
+                        xtype: 'gridcolumn',
+                        text: columnCfg.text,
+                        scope: this,
+                        renderer: function(value, metaData, record, rowIndex, colIndex, store, view) {
+                            var result;
+                            try {
+                                switch (subDataIndex) {
+                                    case Constants.ID.PREDECESSOR:
+                                        result = this.predecessorEndRenderer(record, columnCfg.dataIndex);
+                                        break;
+                                    case Constants.ID.SUCCESSOR:
+                                        result = this.successorEndRenderer(record, columnCfg.dataIndex);
+                                        break;
+                                    default:
+                                        result = this.primaryHealthRenderer(record, columnCfg.dataIndex);
                                         break;
                                 }
                             }
@@ -542,6 +603,85 @@ Ext.define("CArABU.app.TSApp", {
     },
 
 //TODO: add renderer for higher level portfolio item types
+
+    primaryHealthRenderer: function(row, fieldName) {
+        var primaryStory = row.get(Constants.ID.STORY);
+        var value = Rally.util.HealthColorCalculator.calculateHealthColor({
+              startDate: primaryStory.get('PlannedStartDate'),
+              endDate: primaryStory.get('PlannedEndDate'),
+              asOfDate: new Date(),
+              percentComplete: primaryStory.get('PercentDoneByStoryPlanEstimate')
+          }).hex;
+        return '<div class="status-color" style="background-color:' + value + '">' + Ext.Date.format(primaryStory.get(fieldName), Constants.SETTING.DATEFORMAT) + '</div>';
+    },
+
+    predecessorStartRenderer: function(row) {
+        var result;
+        var primaryStory = row.get(Constants.ID.STORY);
+        var predecessor = row.get(Constants.ID.PREDECESSOR);
+
+        if (predecessor) {
+            var colorClass = Constants.CLASS.OK;
+            if (predecessor.get('PlannedStartDate') > primaryStory.get('PlannedStartDate')){
+                colorClass = Constants.CLASS.WARNING
+            }
+            result = this.colorsRenderer(Ext.Date.format(predecessor.get('PlannedStartDate'), Constants.SETTING.DATEFORMAT), colorClass);
+        }
+
+        return result;
+    },
+
+    predecessorEndRenderer: function(row) {
+        var result;
+        var primaryStory = row.get(Constants.ID.STORY);
+        var predecessor = row.get(Constants.ID.PREDECESSOR);
+
+        if (predecessor) {
+            var colorClass = Constants.CLASS.OK;
+            if (predecessor.get('PlannedEndDate') > primaryStory.get('PlannedStartDate')){
+                colorClass = Constants.CLASS.WARNING
+            } else if (predecessor.get('PlannedEndDate') > primaryStory.get('PlannedEndDate')){
+                colorClass = Constants.CLASS.ERROR;
+            }
+            result = this.colorsRenderer(Ext.Date.format(predecessor.get('PlannedEndDate'), Constants.SETTING.DATEFORMAT), colorClass);
+        }
+
+        return result;
+    },
+
+    successorStartRenderer: function(row) {
+        var result;
+        var primaryStory = row.get(Constants.ID.STORY);
+        var successor = row.get(Constants.ID.SUCCESSOR);
+
+        if (successor) {
+            var colorClass = Constants.CLASS.OK;
+            if (successor.get('PlannedEndDate') < primaryStory.get('PlannedEndDate')){
+                colorClass = Constants.CLASS.WARNING
+            } else if (successor.get('PlannedEndDate') < primaryStory.get('PlannedEndDate')){
+                colorClass = Constants.CLASS.ERROR;
+            }
+            result = this.colorsRenderer(Ext.Date.format(predecessor.get('PlannedStartDate'), Constants.SETTING.DATEFORMAT), colorClass);
+        }
+
+        return result;
+    },
+
+    successorEndRenderer: function(row) {
+        var result;
+        var primaryStory = row.get(Constants.ID.STORY);
+        var successor = row.get(Constants.ID.SUCCESSOR);
+
+        if (successor) {
+            var colorClass = Constants.CLASS.OK;
+            if (successor.get('PlannedEndDate') < primaryStory.get('PlannedEndDate')){
+                colorClass = Constants.CLASS.ERROR;
+            }
+            result = this.colorsRenderer(Ext.Date.format(predecessor.get('PlannedStartDate'), Constants.SETTING.DATEFORMAT), colorClass);
+        }
+
+        return result;
+    },
 
     primaryIterationRenderer: function(row, timeboxField) {
         var colorClass = Constants.CLASS.OK;
