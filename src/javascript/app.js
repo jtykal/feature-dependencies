@@ -18,7 +18,7 @@ Ext.define("CArABU.app.TSApp", {
                 type: 'hbox',
             },
             items: [
-                { xtype: 'container', itemId: 'controlsArea' },
+                { xtype: 'container', itemId: 'controlsArea'},
                 { xtype: 'container', flex: 1 },
                 { xtype: 'container', layout: { type: 'hbox' }, itemId: 'settingsArea' },
             ]
@@ -39,8 +39,8 @@ Ext.define("CArABU.app.TSApp", {
         this.loadPrimaryStories(this.modelName);
     },
 
-    initLowestPortfolioItemTypeName: function() {
-        return Ext.create('Rally.data.wsapi.Store', {
+    initChosenPortfolioItemTypeName: function() {
+        this.piStore = Ext.create('Rally.data.wsapi.Store', {
             model: Ext.identityFn('TypeDefinition'),
             fetch: ['Name', 'Ordinal', 'TypePath'],
             sorters: {
@@ -58,15 +58,17 @@ Ext.define("CArABU.app.TSApp", {
                     value: 'Portfolio Item'
                 }
             ]
-        }).load().then({
+        })
+        
+        return this.piStore.load().then({
             scope: this,
             success: function(results) {
-                return results[0].get('Name');
+                return this.getSetting(Constants.SETTING.DEPENDENCY_TYPE) || results[0].get('Name');
             }
         });
     },
 
-    showFeatureDependencies: function() {
+    showPortfolioDependencies: function() {
         return this.getSetting(Constants.SETTING.DEPENDENCY_TYPE) != Constants.SETTING.STORY;
     },
 
@@ -74,18 +76,19 @@ Ext.define("CArABU.app.TSApp", {
         return this.getSetting(Constants.SETTING.DEPENDENCY_TYPE);
     },
 
-    getLowestPortfolioItemTypeName: function() {
-        return this.lowestPortfolioItemTypeName || 'Feature'
+    getChosenPortfolioItemTypeName: function() {
+        return this.chosenPortfolioItemTypeName || 'portfolioitem/feature'
     },
 
     launch: function() {
-        this.initLowestPortfolioItemTypeName().then({
+
+        this.initChosenPortfolioItemTypeName().then({
             scope: this,
             success: function(name) {
-                this.lowestPortfolioItemTypeName = name;
+                this.chosenPortfolioItemTypeName = name;
                 this.modelName = 'hierarchicalrequirement';
-                if (this.showFeatureDependencies()) {
-                    this.modelName = 'portfolioitem/' + this.getLowestPortfolioItemTypeName();
+                if (this.showPortfolioDependencies()) {
+                    this.modelName = this.getChosenPortfolioItemTypeName();
                 }
             }
         }).then({
@@ -117,9 +120,11 @@ Ext.define("CArABU.app.TSApp", {
 
         var filters = [];
 
-        var timeboxScope = this.getContext().getTimeboxScope();
-        if (timeboxScope) {
-            filters.push(timeboxScope.getQueryFilter());
+        if (this.getSetting('DEPENDENCY_TYPE').indexOf('portfolioitem/') < 0){
+            var timeboxScope = this.getContext().getTimeboxScope();
+            if (timeboxScope) {
+                filters.push(timeboxScope.getQueryFilter());
+            }
         }
 
         var advancedFilters = this.getFiltersFromButton();
@@ -153,9 +158,18 @@ Ext.define("CArABU.app.TSApp", {
         var controlsArea = this.down('#controlsArea');
 
         // Add column picker first so we know what fields to fetch during artifact load
+
+        debugger;
+
         var alwaysSelectedColumns = ['FormattedID', 'Name'];
-        if (this.showFeatureDependencies()) {
-            alwaysSelectedColumns.push('Release')
+        if (this.showPortfolioDependencies()) {
+            if (this.piStore.data.items[0].get('TypePath').toLowerCase() === this.getSetting('DEPENDENCY_TYPE')){
+                alwaysSelectedColumns.push('Release')
+            }
+            else {
+                alwaysSelectedColumns.push('PlannedStartDate');
+                alwaysSelectedColumns.push('PlannedEndDate');
+            }
         }
         else {
             alwaysSelectedColumns.push('Iteration');
@@ -272,7 +286,6 @@ Ext.define("CArABU.app.TSApp", {
         textOut = textOut.slice(0,-1)+'\n';
 
         var me = this;
-        debugger;
         _.each(store.getData().items, function(item) {
             textOut += me._getItemCSVString(item, 'STORY');
             textOut += me._getItemCSVString(item, 'PREDECESSOR');
@@ -413,7 +426,7 @@ Ext.define("CArABU.app.TSApp", {
     getColumns: function() {
         return [{
                 xtype: 'gridcolumn',
-                text: this.showFeatureDependencies() ? this.getLowestPortfolioItemTypeName() : Constants.LABEL.STORY,
+                text: this.showPortfolioDependencies() ? this.getChosenPortfolioItemTypeName().split('/')[1] : Constants.LABEL.STORY,
                 __subDataIndex: Constants.ID.STORY, // See Overrides.js
                 columns: this.getSubColumns(Constants.ID.STORY)
             },
@@ -448,7 +461,7 @@ Ext.define("CArABU.app.TSApp", {
             var column;
             var columnCfg = this.getColumnConfigFromModel(selectedFieldName);
             switch (columnCfg.dataIndex) {
-                case this.getLowestPortfolioItemTypeName():
+                case this.getChosenPortfolioItemTypeName():
                     column = {
                         xtype: 'gridcolumn',
                         text: columnCfg.modelField.displayName,
@@ -527,6 +540,8 @@ Ext.define("CArABU.app.TSApp", {
     getStartDateField: function(timeboxField) {
         return timeboxField === 'Release' ? 'ReleaseStartDate' : 'StartDate';
     },
+
+//TODO: add renderer for higher level portfolio item types
 
     primaryIterationRenderer: function(row, timeboxField) {
         var colorClass = Constants.CLASS.OK;
@@ -650,14 +665,22 @@ Ext.define("CArABU.app.TSApp", {
     },
 
     getSettingsFields: function() {
-        var store = Ext.create('Rally.data.custom.Store', {
-            data: [{
+        var data = [{
                 Name: 'User Story',
                 Value: Constants.SETTING.STORY,
-            }, {
-                Name: this.getLowestPortfolioItemTypeName(),
-                Value: this.getLowestPortfolioItemTypeName()
-            }]
+            }];
+        
+        if (this.piStore.data) {    //Can only do this after app has started and item types are available
+            _.each(this.piStore.data.items, function(item) {
+                data.push({
+                    Name: item.get('Name'),
+                    Value: item.get('TypePath').toLowerCase()
+                });
+            });
+        }
+
+        var store = Ext.create('Rally.data.custom.Store', {
+            data: data
         });
         return [{
             xtype: 'rallycombobox',
