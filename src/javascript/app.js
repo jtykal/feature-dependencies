@@ -5,7 +5,8 @@ Ext.define("CArABU.app.TSApp", {
     defaults: { margin: 10 },
     config: {
         defaultSettings: {
-            DEPENDENCY_TYPE: Constants.SETTING.STORY
+            DEPENDENCY_TYPE: Constants.SETTING.STORY,
+            query: ''
         },
     },
     layout: {
@@ -120,6 +121,12 @@ Ext.define("CArABU.app.TSApp", {
 
         var filters = [];
 
+        if (this.getSetting('query')) {
+            var querySetting = this.getSetting('query').replace(/\{user\}/g, this.getContext().getUser()._ref);
+            var query_filter = Rally.data.QueryFilter.fromQueryString(querySetting);
+            filters.push(query_filter);
+        }
+
         if ((this.getSetting('DEPENDENCY_TYPE').indexOf('portfolioitem/') < 0) ||   //Not portfolio types
                     (this.piStore.data.items[0].get('TypePath').toLowerCase() === this.getSetting('DEPENDENCY_TYPE'))){ // but add first level portfolio type
             var timeboxScope = this.getContext().getTimeboxScope();
@@ -162,13 +169,22 @@ Ext.define("CArABU.app.TSApp", {
 
         var alwaysSelectedColumns = ['FormattedID', 'Name'];
         if (this.showPortfolioDependencies()) {
-            if (this.piStore.data.items[0].get('TypePath').toLowerCase() === this.getSetting('DEPENDENCY_TYPE')){
-                alwaysSelectedColumns.push('Release')
-            }
-            else {
-                alwaysSelectedColumns.push('PlannedStartDate');
-                alwaysSelectedColumns.push('PlannedEndDate');
-            }
+        //    if (this.piStore.data.items[0].get('TypePath').toLowerCase() === this.getSetting('DEPENDENCY_TYPE')){
+        //        alwaysSelectedColumns.push('Release')
+        //    }
+        //    else {
+        //        alwaysSelectedColumns.push('PlannedStartDate');
+        //        alwaysSelectedColumns.push('PlannedEndDate');
+        //    }
+            /* required columns for MS FRTB */
+            alwaysSelectedColumns.push('Release');
+            alwaysSelectedColumns.push('c_RAG');
+            alwaysSelectedColumns.push('Tags');
+            alwaysSelectedColumns.push('State');
+            alwaysSelectedColumns.push('Owner');
+            alwaysSelectedColumns.push('Milestones');
+            alwaysSelectedColumns.push('PlannedStartDate');
+            alwaysSelectedColumns.push('PlannedEndDate');
         }
         else {
             alwaysSelectedColumns.push('Iteration');
@@ -822,13 +838,18 @@ Ext.define("CArABU.app.TSApp", {
         var store = Ext.create('Rally.data.custom.Store', {
             data: data
         });
-        return [{
-            xtype: 'rallycombobox',
-            name: Constants.SETTING.DEPENDENCY_TYPE,
-            label: Constants.LABEL.DEPENDENCY_TYPE,
-            displayField: 'Name',
-            valueField: 'Value',
-            store: store
-        }];
+        return [
+            {
+                xtype: 'rallycombobox',
+                name: Constants.SETTING.DEPENDENCY_TYPE,
+                label: Constants.LABEL.DEPENDENCY_TYPE,
+                displayField: 'Name',
+                valueField: 'Value',
+                store: store
+            },
+            {
+                type: 'query'
+            }
+        ];
     }
 });
