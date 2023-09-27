@@ -169,15 +169,11 @@ Ext.define("CArABU.app.TSApp", {
 
         var alwaysSelectedColumns = ['FormattedID', 'Name'];
         if (this.showPortfolioDependencies()) {
-        //    if (this.piStore.data.items[0].get('TypePath').toLowerCase() === this.getSetting('DEPENDENCY_TYPE')){
-        //        alwaysSelectedColumns.push('Release')
-        //    }
-        //    else {
-        //        alwaysSelectedColumns.push('PlannedStartDate');
-        //        alwaysSelectedColumns.push('PlannedEndDate');
-        //    }
+            if (this.piStore.data.items[0].get('TypePath').toLowerCase() === this.getSetting('DEPENDENCY_TYPE')){
+                alwaysSelectedColumns.push('Release')
+            }
+        
             /* required columns for MS FRTB */
-            alwaysSelectedColumns.push('Release');
             alwaysSelectedColumns.push('c_RAG');
             alwaysSelectedColumns.push('Tags');
             alwaysSelectedColumns.push('State');
