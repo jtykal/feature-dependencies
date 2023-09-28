@@ -294,16 +294,14 @@ Ext.define("CArABU.app.TSApp", {
         _.each(this.getFieldNames(), function(field) {
             textOut += 'Successor '+field+',';
         });
-        textOut = textOut.slice(0,-1)+'\n';
-
+        textOut = textOut.slice(0,-1)+'\\n';
         var me = this;
         _.each(store.getData().items, function(item) {
             textOut += me._getItemCSVString(item, 'STORY');
             textOut += me._getItemCSVString(item, 'PREDECESSOR');
             textOut += me._getItemCSVString(item, 'SUCCESSOR');
-            textOut = textOut.slice(0,-1)+'\n';
+            textOut = textOut.slice(0,-1)+'\\n';
         });
-
         return textOut;
     },
 
