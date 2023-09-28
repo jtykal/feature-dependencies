@@ -31,8 +31,15 @@ By default, only items with dependencies are shown, but this can be changed with
   * Yellow - successor is scheduled in the same timebox as the primary artifact
   * Grey - successor is unscheduled 
 
-## Development Notes
+## Usage Notes
 
+### Export Limitations
+
+The export function will only export the number of records that are visible on the page. You can increase the page size to a maximum of 200 records. If your data set exceeds 200 records, you will need to do multiple exports.
+
+Some punctuation and special characters cannot be exported into a delimited text file, so the data in your export may not exactly match the data you see on the screen.
+
+## Development Notes
 
 ### First Load
 
