@@ -3,20 +3,16 @@
 ## Summary/Description
 
 ![screenshot](./screenshot.png "This is an example")
+This is a customer-specific app. You'll likely encounter problems using it in any subscription other than the one it was created for. You've been warned...
 
-This is a customer-specific app. You'll likely encounter problems using it in any subscription other than the one it was not created for. You've been warned...
+Show stories or Portfolio Items and their dependencies. Color code the dependencies based on their
+schedule. The app respects page-level timebox filtering for those work item types that support it.
 
-Show stories (or Portfolio Items) and their dependencies. Color code the dependencies based on their
-schedule. The app respects page-level timebox filtering for those types that support it.
-
-The app can also be configured to show dependencies and colors dependencies based
-on start dates. The app will automatically detect the name of the 
-portfolio items (portfolioitem/feature is the default), so this will work in environments that have
-customized portfolio item names.
+The app will automatically detect the name of the  portfolio items (portfolioitem/feature is the default), so this will work in environments that have custom portfolio item names.
 
 For higher level portfolio items (i.e. above features), the app will color code both of the main artifacts start/end dates with the current 'health' color of the artifact.
 
-A number of fields are hard-coded as default columns to be displayed.
+A number of fields are hard-coded as default columns to be displayed - including some custom fields used by the target customer.
 
 By default, only items with dependencies are shown, but this can be changed within the app.
 
@@ -35,9 +31,9 @@ By default, only items with dependencies are shown, but this can be changed with
 
 ### Export Limitations
 
-The export function will only export the number of records that are visible on the page. You can increase the page size to a maximum of 200 records. If your data set exceeds 200 records, you will need to do multiple exports.
-
-Some punctuation and special characters cannot be exported into a delimited text file, so the data in your export may not exactly match the data you see on the screen.
+* The export file will only include the records that are visible on the page (default is 25). You can increase the page size to a maximum of 200 records. If your data set exceeds 200 records, you will need to do multiple exports.
+* Some reference fields (such as Tags and Milestones) export a count of items, not the actual item names as are visible on the screen.
+* Some punctuation and special characters cannot be exported into a delimited text file, so the data in your export may not exactly match the data you see on the screen.
 
 ## Development Notes
 
