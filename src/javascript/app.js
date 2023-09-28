@@ -169,9 +169,9 @@ Ext.define("CArABU.app.TSApp", {
 
         var alwaysSelectedColumns = ['FormattedID', 'Name'];
         if (this.showPortfolioDependencies()) {
-            if (this.piStore.data.items[0].get('TypePath').toLowerCase() === this.getSetting('DEPENDENCY_TYPE')){
-                alwaysSelectedColumns.push('Release')
-            }
+            //if (this.piStore.data.items[0].get('TypePath').toLowerCase() === this.getSetting('DEPENDENCY_TYPE')){
+            //    alwaysSelectedColumns.push('Release')
+            //}
         
             /* required columns for MS FRTB */
             alwaysSelectedColumns.push('c_RAG');
