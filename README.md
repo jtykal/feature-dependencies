@@ -31,7 +31,7 @@ By default, only items with dependencies are shown, but this can be changed with
 
 ### Export Limitations
 
-* The export file will only include the records that are visible on the page (default is 25). You can increase the page size to a maximum of 200 records. If your data set exceeds 200 records, you will need to do multiple exports.
+* The export file will only include the records that are visible on the page (default pageSize has been set to 500). You can increase the page size to a maximum of 1000 records. If your data set exceeds 1000 records, you will need to do multiple exports, one for each page of data.
 * Some reference fields (such as Tags and Milestones) export a count of items, not the actual item names as are visible on the screen.
 * Some punctuation and special characters cannot be exported into a delimited text file, so the data in your export may not exactly match the data you see on the screen.
 
