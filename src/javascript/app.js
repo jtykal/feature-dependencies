@@ -5,7 +5,8 @@ Ext.define("CArABU.app.TSApp", {
     defaults: { margin: 10 },
     config: {
         defaultSettings: {
-            DEPENDENCY_TYPE: Constants.SETTING.STORY,
+            //DEPENDENCY_TYPE: Constants.SETTING.STORY,
+            DEPENDENCY_TYPE: 'portfolioitem/feature',  //jt-set default to show Feature dependencies
             query: ''
         },
     },
@@ -145,6 +146,7 @@ Ext.define("CArABU.app.TSApp", {
             autoLoad: true,
             filters: filters,
             limit: Infinity,
+            pageSize: 500,  //jt-increase pageSize to reduce pagination for MS data
             listeners: {
                 scope: this,
                 load: function(store, records) {
@@ -418,6 +420,9 @@ Ext.define("CArABU.app.TSApp", {
             enableEditing: false,
             rowLines: false,
             store: store,
+            pagingToolbarCfg: {  //jt-provide larger options for pageSizes to reduce pagination, especially for export
+                pageSizes: [500, 1000]
+            },
             columnCfgs: this.getColumns(),
         })
     },
@@ -815,10 +820,7 @@ Ext.define("CArABU.app.TSApp", {
     },
 
     getSettingsFields: function() {
-        var data = [{
-                Name: 'User Story',
-                Value: Constants.SETTING.STORY,
-            }];
+        var data = [];
         
         if (this.piStore.data) {    //Can only do this after app has started and item types are available
             _.each(this.piStore.data.items, function(item) {
@@ -828,6 +830,10 @@ Ext.define("CArABU.app.TSApp", {
                 });
             });
         }
+        data.push({
+            Name: 'User Story',
+            Value: Constants.SETTING.STORY,
+        });
 
         var store = Ext.create('Rally.data.custom.Store', {
             data: data

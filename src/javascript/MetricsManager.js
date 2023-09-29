@@ -12,7 +12,8 @@ Ext.define('MetricsManager', function(MetricsManager) {
                 success: function(results) {
                     // Results is an array of all of the 
                     var store = Ext.create('Rally.data.custom.Store', {
-                        data: results
+                        data: results,
+                        pageSize: 500  //jt-increased pageSize to reduce pagination for MS data
                     });
                     return store;
                 }
