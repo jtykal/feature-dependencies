@@ -342,7 +342,7 @@ Ext.define("CArABU.app.TSApp", {
 
         // we capture object types here
         } else if (fieldData._refObjectName && !fieldData.getMonth) {
-            text = fieldData._refObjectName;
+            text = fieldData.FormattedID + ": " + fieldData._refObjectName;
 
         // Date types here
         } else if (fieldData instanceof Date) {
@@ -352,7 +352,7 @@ Ext.define("CArABU.app.TSApp", {
         } else if (fieldData.Count !== undefined) {
             text = fieldData.Count.toString();
         }
-        /*else if (!fieldData.match) { // not a string or object we recognize...bank it out
+        /*else if (!fieldData.match) { // not a string or object we recognize...blank it out
             text = '';
         } */ else {
             var delimiter = ",",
